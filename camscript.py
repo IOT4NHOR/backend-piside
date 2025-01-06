@@ -1,7 +1,6 @@
 import cv2
 import time
 import os
-import subprocess
 from yolo_detection import detect_and_display
 
 more2 = 1
@@ -31,6 +30,24 @@ def save_image(frame, image_counter):
     cv2.imwrite(filename, frame)
     print(f"Image saved: {filename}")
 
+# Function to select ROIs manually
+def select_rois(frame):
+    rois = cv2.selectROIs("Select ROIs", frame, fromCenter=False, showCrosshair=True)
+    cv2.destroyWindow("Select ROIs")
+    return rois
+
+# Capture a frame to select ROIs
+ret, frame = cap.read()
+if not ret:
+    print("Error: Failed to capture image.")
+    cap.release()
+    cv2.destroyAllWindows()
+    exit()
+
+# Select ROIs manually once
+rois = select_rois(frame)
+print(f"Selected ROIs: {rois}")
+
 # Loop to capture images
 try:
     while True:
@@ -41,16 +58,21 @@ try:
             print("Error: Failed to capture image.")
             break
 
-
-
-        # Perform YOLO detection and display results
-        annotated_frame = detect_and_display(frame,image_counter)
+        # Perform YOLO detection and display results for each ROI
+        for roi in rois:
+            x, y, w, h = roi
+            if w > 0 and h > 0:  # Ensure the ROI is valid
+                roi_frame = frame[y:y+h, x:x+w]
+                annotated_frame = detect_and_display(roi_frame, image_counter)
+                frame[y:y+h, x:x+w] = annotated_frame  # Place the annotated ROI back into the frame
+            else:
+                print(f"Invalid ROI: {roi}")
 
         # Show the annotated frame in the same window
-        cv2.imshow("YOLO Detection", annotated_frame)
+        cv2.imshow("YOLO Detection", frame)
 
         # Save the annotated image
-        save_image(annotated_frame, image_counter)
+        save_image(frame, image_counter)
 
         # Update the counter and reset it to 1 after 6
         image_counter = (image_counter % 6) + 1
