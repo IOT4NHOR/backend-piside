@@ -2,6 +2,9 @@ import cv2
 import time
 import os
 import subprocess
+from yolo_detection import detect_and_display
+
+more2 = 1
 
 # Create the image directory if it doesn't exist
 image_dir = 'image'
@@ -19,10 +22,6 @@ if not cap.isOpened():
 # Initialize a counter for the image number
 image_counter = 1
 
-# Function to run YOLO detection on the saved image
-def run_yolo_detection(image_path):
-    subprocess.Popen(['python', 'yolo_detection.py', image_path])
-
 # Function to save the image
 def save_image(frame, image_counter):
     # Generate the filename based on the image number
@@ -31,9 +30,6 @@ def save_image(frame, image_counter):
     # Save the frame as an image
     cv2.imwrite(filename, frame)
     print(f"Image saved: {filename}")
-
-    # Run YOLO detection on the saved image
-    run_yolo_detection(filename)
 
 # Loop to capture images
 try:
@@ -45,14 +41,26 @@ try:
             print("Error: Failed to capture image.")
             break
 
-        # Save the image and perform YOLO detection
-        save_image(frame, image_counter)
+
+
+        # Perform YOLO detection and display results
+        annotated_frame = detect_and_display(frame,image_counter)
+
+        # Show the annotated frame in the same window
+        cv2.imshow("YOLO Detection", annotated_frame)
+
+        # Save the annotated image
+        save_image(annotated_frame, image_counter)
 
         # Update the counter and reset it to 1 after 6
         image_counter = (image_counter % 6) + 1
 
         # Wait for 10 seconds before capturing the next photo
         time.sleep(10)
+
+        # Break the loop on 'q' key press
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
 except KeyboardInterrupt:
     print("Script interrupted by user.")
