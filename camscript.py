@@ -1,6 +1,7 @@
 import cv2
 import time
 import os
+import json
 from yolo_detection import detect_and_display
 
 more2 = 1
@@ -12,6 +13,7 @@ if not os.path.exists(image_dir):
 
 # Open the camera
 cap = cv2.VideoCapture(0)
+time.sleep(2)
 
 # Check if the camera is opened correctly
 if not cap.isOpened():
@@ -22,9 +24,9 @@ if not cap.isOpened():
 image_counter = 1
 
 # Function to save the image
-def save_image(frame, image_counter):
+def save_image(frame, image_counter, prefix=''):
     # Generate the filename based on the image number
-    filename = os.path.join(image_dir, f"image{image_counter}.jpg")
+    filename = os.path.join(image_dir, f"{prefix}image{image_counter}.jpg")
 
     # Save the frame as an image
     cv2.imwrite(filename, frame)
@@ -36,6 +38,22 @@ def select_rois(frame):
     cv2.destroyWindow("Select ROIs")
     return rois
 
+# Function to save ROIs to a file
+def save_rois(rois, filename='rois.json'):
+    with open(filename, 'w') as f:
+        json.dump(rois.tolist(), f)
+    print(f"ROIs saved to {filename}")
+
+# Function to load ROIs from a file
+def load_rois(filename='rois.json'):
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
+            rois = json.load(f)
+        print(f"ROIs loaded from {filename}")
+        return rois
+    else:
+        return None
+
 # Capture a frame to select ROIs
 ret, frame = cap.read()
 if not ret:
@@ -44,12 +62,15 @@ if not ret:
     cv2.destroyAllWindows()
     exit()
 
-# Select ROIs manually once
-rois = select_rois(frame)
-print(f"Selected ROIs: {rois}")
+# Load existing ROIs or select new ones
+rois = load_rois()
+if rois is None or input("Use existing ROIs? (y/n): ").strip().lower() != 'y':
+    rois = select_rois(frame)
+    save_rois(rois)
 
 # Loop to capture images
 try:
+    start_time = time.time()
     while True:
         # Capture a frame from the camera
         ret, frame = cap.read()
@@ -58,27 +79,40 @@ try:
             print("Error: Failed to capture image.")
             break
 
-        # Perform YOLO detection and display results for each ROI
-        for roi in rois:
-            x, y, w, h = roi
-            if w > 0 and h > 0:  # Ensure the ROI is valid
-                roi_frame = frame[y:y+h, x:x+w]
-                annotated_frame = detect_and_display(roi_frame, image_counter)
-                frame[y:y+h, x:x+w] = annotated_frame  # Place the annotated ROI back into the frame
-            else:
-                print(f"Invalid ROI: {roi}")
+        # Check if 10 seconds have passed
+        if time.time() - start_time >= 10:
+            # Save the current frame before processing
+            save_image(frame, image_counter, prefix='current_')
 
-        # Show the annotated frame in the same window
-        cv2.imshow("YOLO Detection", frame)
+            # Draw the selected ROIs on the frame
+            for roi in rois:
+                x, y, w, h = roi
+                if w > 0 and h > 0:  # Ensure the ROI is valid
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                else:
+                    print(f"Invalid ROI: {roi}")
 
-        # Save the annotated image
-        save_image(frame, image_counter)
+            # Perform YOLO detection and display results for each ROI
+            for roi in rois:
+                x, y, w, h = roi
+                if w > 0 and h > 0:  # Ensure the ROI is valid
+                    roi_frame = frame[y:y+h, x:x+w]
+                    annotated_frame = detect_and_display(roi_frame, image_counter)
+                    frame[y:y+h, x:x+w] = annotated_frame  # Place the annotated ROI back into the frame
+                else:
+                    print(f"Invalid ROI: {roi}")
 
-        # Update the counter and reset it to 1 after 6
-        image_counter = (image_counter % 6) + 1
+            # Show the annotated frame in the same window
+            cv2.imshow("YOLO Detection", frame)
 
-        # Wait for 10 seconds before capturing the next photo
-        time.sleep(10)
+            # Save the annotated image
+            save_image(frame, image_counter)
+
+            # Update the counter and reset it to 1 after 6
+            image_counter = (image_counter % 6) + 1
+
+            # Reset the start time
+            start_time = time.time()
 
         # Break the loop on 'q' key press
         if cv2.waitKey(1) & 0xFF == ord('q'):
