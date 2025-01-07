@@ -60,6 +60,7 @@ def load_rois(filename='rois.json'):
 def send_result(roi_results):
     for result in roi_results:
         # Here you can add the code to send the result, e.g., via an API call
+
         print(f"Result sent: {result}")
 
 # Capture a frame to select ROIs
@@ -107,12 +108,14 @@ try:
                 x, y, w, h = roi
                 if w > 0 and h > 0:  # Ensure the ROI is valid
                     roi_frame = frame[y:y+h, x:x+w]
-                    annotated_frame, amount_of_person_detected, confidences = detect_and_display(roi_frame, image_counter)
+                    annotated_frame, amount_of_person_detected, confidences, class_names = detect_and_display(roi_frame, image_counter)
                     frame[y:y+h, x:x+w] = annotated_frame  # Place the annotated ROI back into the frame
                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
                     roi_results.append({
                         "date_time": current_time,
-                        "amount_of_person_detected": amount_of_person_detected
+                        "amount_of_person_detected": amount_of_person_detected,
+                        "object": class_names
                     })
                     all_confidences.extend(confidences)
                 else:
