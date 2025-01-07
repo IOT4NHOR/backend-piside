@@ -25,7 +25,7 @@ class_names = {
     70: 'toaster', 71: 'sink', 72: 'refrigerator', 73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear',
     78: 'hair drier', 79: 'toothbrush'
 }
-
+#test
 # Function to perform YOLO detection on the frame and return the annotated frame, amount of person detected, confidence scores, and class names
 def detect_and_display(frame, image_counter):
     # Perform detection on the frame
