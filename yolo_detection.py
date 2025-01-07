@@ -9,7 +9,7 @@ if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
 # Load the pre-trained YOLO model
-model = YOLO('yolov8n.pt')  # Replace with your appropriate YOLO model
+model = YOLO('yolo11s.pt')  # Replace with your appropriate YOLO model
 
 # Mapping of class indices to class names for the COCO dataset
 class_names = {
@@ -25,13 +25,14 @@ class_names = {
     70: 'toaster', 71: 'sink', 72: 'refrigerator', 73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear',
     78: 'hair drier', 79: 'toothbrush'
 }
-#test
+
 # Function to perform YOLO detection on the frame and return the annotated frame, amount of person detected, confidence scores, and class names
 def detect_and_display(frame, image_counter):
     # Perform detection on the frame
     results = model(frame)
 
     # Render results and show the updated frame
+
     annotated_frame = results[0].plot()  # This will draw bounding boxes and labels on the frame
 
     # Save the annotated frame as an image

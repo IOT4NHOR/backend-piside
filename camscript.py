@@ -37,6 +37,7 @@ def save_image(frame, image_counter, prefix=''):
 # Function to select ROIs manually
 def select_rois(frame):
     rois = cv2.selectROIs("Select ROIs", frame, fromCenter=False, showCrosshair=True)
+    print("Roi selected")
     cv2.destroyWindow("Select ROIs")
     return rois
 
