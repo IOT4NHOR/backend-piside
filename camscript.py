@@ -1,7 +1,9 @@
+# backend-piside/camscript.py
 import cv2
 import time
 import os
 import json
+from datetime import datetime
 from yolo_detection import detect_and_display
 
 more2 = 1
@@ -54,6 +56,12 @@ def load_rois(filename='rois.json'):
     else:
         return None
 
+# Function to send the result
+def send_result(roi_results):
+    for result in roi_results:
+        # Here you can add the code to send the result, e.g., via an API call
+        print(f"Result sent: {result}")
+
 # Capture a frame to select ROIs
 ret, frame = cap.read()
 if not ret:
@@ -80,7 +88,7 @@ try:
             break
 
         # Check if 10 seconds have passed
-        if time.time() - start_time >= 10:
+        if time.time() - start_time >= 3:
             # Save the current frame before processing
             save_image(frame, image_counter, prefix='current_')
 
@@ -93,20 +101,37 @@ try:
                     print(f"Invalid ROI: {roi}")
 
             # Perform YOLO detection and display results for each ROI
-            for roi in rois:
+            roi_results = []
+            all_confidences = []
+            for idx, roi in enumerate(rois):
                 x, y, w, h = roi
                 if w > 0 and h > 0:  # Ensure the ROI is valid
                     roi_frame = frame[y:y+h, x:x+w]
-                    annotated_frame = detect_and_display(roi_frame, image_counter)
+                    annotated_frame, amount_of_person_detected, confidences = detect_and_display(roi_frame, image_counter)
                     frame[y:y+h, x:x+w] = annotated_frame  # Place the annotated ROI back into the frame
+                    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    roi_results.append({
+                        "date_time": current_time,
+                        "amount_of_person_detected": amount_of_person_detected
+                    })
+                    all_confidences.extend(confidences)
                 else:
                     print(f"Invalid ROI: {roi}")
+
+            # Check for minimum and maximum confidence scores
+            if all_confidences:
+                min_confidence = min(all_confidences)
+                max_confidence = max(all_confidences)
+                print(f"Min confidence: {min_confidence}, Max confidence: {max_confidence}")
 
             # Show the annotated frame in the same window
             cv2.imshow("YOLO Detection", frame)
 
             # Save the annotated image
             save_image(frame, image_counter)
+
+            # Send the result
+            send_result(roi_results)
 
             # Update the counter and reset it to 1 after 6
             image_counter = (image_counter % 6) + 1
