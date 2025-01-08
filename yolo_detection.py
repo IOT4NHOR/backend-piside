@@ -32,6 +32,7 @@ def detect_and_display(frame, image_counter):
     results = model(frame)
 
     # Render results and show the updated frame
+
     annotated_frame = results[0].plot()  # This will draw bounding boxes and labels on the frame
 
     # Save the annotated frame as an image
