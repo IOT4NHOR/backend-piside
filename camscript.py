@@ -116,7 +116,7 @@ try:
 
                     roi_results.append({
                         "date_time": current_time,
-                        "amount_of_person_detected": amount_of_person_detected,
+                        "people": amount_of_person_detected,
                         "object": class_names
                     })
                     all_confidences.extend(confidences)
