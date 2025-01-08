@@ -63,7 +63,8 @@ def send_result(roi_results):
         # Here you can add the code to send the result, e.g., via an API call
         if requests.post(url, json=result):
             print("data sent")
-        print("data not sent")
+        else:
+            print("data not sent")
         print(f"Result sent: {result}")
 
 # Capture a frame to select ROIs
