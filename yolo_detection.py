@@ -9,7 +9,7 @@ if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
 # Load the pre-trained YOLO model
-model = YOLO('yolov8n.pt')  # Replace with your appropriate YOLO model
+model = YOLO('yolo11s.pt')  # Replace with your appropriate YOLO model
 
 # Mapping of class indices to class names for the COCO dataset
 class_names = {

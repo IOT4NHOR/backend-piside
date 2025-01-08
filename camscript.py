@@ -3,10 +3,9 @@ import cv2
 import time
 import os
 import json
+import requests
 from datetime import datetime
 from yolo_detection import detect_and_display
-
-more2 = 1
 
 # Create the image directory if it doesn't exist
 image_dir = 'image'
@@ -58,9 +57,12 @@ def load_rois(filename='rois.json'):
 
 # Function to send the result
 def send_result(roi_results):
+    url = 'http://iot4gler-iotsmartcam.scnd.space:3000/create'
     for result in roi_results:
         # Here you can add the code to send the result, e.g., via an API call
-
+        if requests.post(url, json=result):
+            print("data sent")
+        print("data not sent")
         print(f"Result sent: {result}")
 
 # Capture a frame to select ROIs
