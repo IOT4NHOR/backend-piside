@@ -1,4 +1,3 @@
-# backend-piside/camscript.py
 import cv2
 import time
 import os
@@ -6,6 +5,8 @@ import json
 import requests
 from datetime import datetime
 from yolo_detection import detect_and_display
+
+identity_number = 100  # Initialize identity number
 
 # Create the image directory if it doesn't exist
 image_dir = 'image'
@@ -57,15 +58,23 @@ def load_rois(filename='rois.json'):
         return None
 
 # Function to send the result
-def send_result(roi_results):
+def send_result(roi_results, identity_number):
     url = 'http://iot4gler-iotsmartcam.scnd.space:3000/create'
-    for result in roi_results:
-        # Here you can add the code to send the result, e.g., via an API call
-        if requests.post(url, json=result):
-            print("data sent")
+    payload = {
+        "identity_number": identity_number,
+        "results": roi_results
+    }
+    try:
+        print(f"Sending result: {json.dumps(payload, indent=2)}")  # Print the body content for debugging
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code == 200:
+            print("Data sent successfully")
         else:
-            print("data not sent")
-        print(f"Result sent: {result}")
+            print(f"Failed to send data: {response.status_code}")
+    except requests.exceptions.Timeout:
+        print("Request timed out")
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
 
 # Capture a frame to select ROIs
 ret, frame = cap.read()
@@ -98,10 +107,11 @@ try:
             save_image(frame, image_counter, prefix='current_')
 
             # Draw the selected ROIs on the frame
-            for roi in rois:
+            for idx, roi in enumerate(rois):
                 x, y, w, h = roi
                 if w > 0 and h > 0:  # Ensure the ROI is valid
                     cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    cv2.putText(frame, f"ROI {idx+1}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                 else:
                     print(f"Invalid ROI: {roi}")
 
@@ -117,6 +127,7 @@ try:
                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                     roi_results.append({
+                        "roi_number": idx + 1,
                         "date_time": current_time,
                         "people": amount_of_person_detected,
                         "object": class_names
@@ -138,7 +149,7 @@ try:
             save_image(frame, image_counter)
 
             # Send the result
-            send_result(roi_results)
+            send_result(roi_results, identity_number)
 
             # Update the counter and reset it to 1 after 6
             image_counter = (image_counter % 6) + 1
