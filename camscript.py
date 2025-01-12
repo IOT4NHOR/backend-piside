@@ -58,11 +58,12 @@ def load_rois(filename='rois.json'):
         return None
 
 # Function to send the result
-def send_result(roi_results, identity_number):
+def send_result(roi_results, identity_number, last_update_time):
     url = 'http://iot4gler-iotsmartcam.scnd.space:3000/create'
     payload = {
         "identity_number": identity_number,
-        "results": roi_results
+        "results": roi_results,
+        "last_update_time": last_update_time
     }
     try:
         print(f"Sending result: {json.dumps(payload, indent=2)}")  # Print the body content for debugging
@@ -118,6 +119,7 @@ try:
             # Perform YOLO detection and display results for each ROI
             roi_results = []
             all_confidences = []
+            last_update_time = None
             for idx, roi in enumerate(rois):
                 x, y, w, h = roi
                 if w > 0 and h > 0:  # Ensure the ROI is valid
@@ -128,11 +130,11 @@ try:
 
                     roi_results.append({
                         "roi_number": idx + 1,
-                        "date_time": current_time,
                         "people": amount_of_person_detected,
                         "object": class_names
                     })
                     all_confidences.extend(confidences)
+                    last_update_time = current_time  # Update the last update time with the current ROI's time
                 else:
                     print(f"Invalid ROI: {roi}")
 
@@ -149,7 +151,7 @@ try:
             save_image(frame, image_counter)
 
             # Send the result
-            send_result(roi_results, identity_number)
+            send_result(roi_results, identity_number, last_update_time)
 
             # Update the counter and reset it to 1 after 6
             image_counter = (image_counter % 6) + 1
