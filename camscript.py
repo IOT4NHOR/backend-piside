@@ -61,7 +61,6 @@ def load_rois(filename='rois.json'):
 def send_result(roi_results, identity_number, last_update_time):
     url = 'http://iot4gler-iotsmartcam.scnd.space:3000/create'
     payload = {
-        "identity_number": identity_number,
         "results": roi_results,
         "last_update_time": last_update_time
     }
