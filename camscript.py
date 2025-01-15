@@ -1,9 +1,11 @@
+import os
 import cv2
 import time
-import os
 import json
 import requests
+import threading
 from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from yolo_detection import detect_and_display
 import numpy as np  # Needed for decoding image data
 
@@ -15,18 +17,16 @@ if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
 # URL to fetch images from localhost
-image_url = "http://localhost:2222/current_image"
+image_url = "http://172.16.4.243:2222/current_image"
 
 # Initialize a counter for the image number
 image_counter = 1
-
 
 # Function to save the image
 def save_image(frame, image_counter, prefix=''):
     filename = os.path.join(image_dir, f"{prefix}image{image_counter}.jpg")
     cv2.imwrite(filename, frame)
     print(f"Image saved: {filename}")
-
 
 # Function to fetch an image from the localhost server
 def fetch_image():
@@ -46,7 +46,6 @@ def fetch_image():
         print(f"Error fetching image: {e}")
     return None
 
-
 # Function to select ROIs manually
 def select_rois(frame):
     rois = cv2.selectROIs("Select ROIs", frame, fromCenter=False, showCrosshair=True)
@@ -54,13 +53,11 @@ def select_rois(frame):
     cv2.destroyWindow("Select ROIs")
     return rois
 
-
 # Function to save ROIs to a file
 def save_rois(rois, filename='rois.json'):
     with open(filename, 'w') as f:
         json.dump(rois.tolist(), f)
     print(f"ROIs saved to {filename}")
-
 
 # Function to load ROIs from a file
 def load_rois(filename='rois.json'):
@@ -72,6 +69,13 @@ def load_rois(filename='rois.json'):
     else:
         return None
 
+# Function to get the latest image file from the image folder
+def get_latest_image():
+    files = [f for f in os.listdir(image_dir) if os.path.isfile(os.path.join(image_dir, f))]
+    if not files:
+        return None
+    files.sort(key=lambda x: os.path.getmtime(os.path.join(image_dir, x)), reverse=True)
+    return os.path.join(image_dir, files[0])
 
 # Function to send the result
 def send_result(roi_results, identity_number, last_update_time):
@@ -91,6 +95,35 @@ def send_result(roi_results, identity_number, last_update_time):
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
 
+# HTTP request handler class
+class RequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/latest_image':
+            latest_image = get_latest_image()
+            if latest_image is None:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"No image found")
+                return
+
+            with open(latest_image, 'rb') as f:
+                image_data = f.read()
+
+            self.send_response(200)
+            self.send_header('Content-type', 'image/jpeg')
+            self.end_headers()
+            self.wfile.write(image_data)
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"Endpoint not found")
+
+# Function to start the HTTP server
+def start_server():
+    server_address = ('', 2223)
+    httpd = HTTPServer(server_address, RequestHandler)
+    print("Starting server on port 2223...")
+    httpd.serve_forever()
 
 # Fetch an initial frame for ROI selection
 frame = fetch_image()
@@ -103,6 +136,11 @@ rois = load_rois()
 if rois is None or input("Use existing ROIs? (y/n): ").strip().lower() != 'y':
     rois = select_rois(frame)
     save_rois(rois)
+
+# Start the HTTP server in a separate thread
+server_thread = threading.Thread(target=start_server)
+server_thread.daemon = True
+server_thread.start()
 
 # Loop to process images
 try:
@@ -160,10 +198,10 @@ try:
             save_image(frame, image_counter)
 
             # Send the result
-            send_result(roi_results, identity_number, last_update_time)
+            # send_result(roi_results, identity_number, last_update_time)
 
             # Update the counter and reset it to 1 after 6
-            image_counter = (image_counter % 6) + 1
+            image_counter = (image_counter % 60) + 1
 
             # Reset the start time
             start_time = time.time()
