@@ -3,6 +3,7 @@ import cv2
 import os
 from ultralytics import YOLO
 
+
 # Create the image directory if it doesn't exist
 image_dir = 'image'
 if not os.path.exists(image_dir):
@@ -26,8 +27,9 @@ class_names = {
     78: 'hair drier', 79: 'toothbrush'
 }
 
+
 # Function to perform YOLO detection on the frame and return the annotated frame, amount of person detected, confidence scores, and class names
-def detect_and_display(frame, image_counter):
+def detect_and_display(frame, result_imagenumber):
     # Perform detection on the frame
     results = model(frame)
 
@@ -36,7 +38,8 @@ def detect_and_display(frame, image_counter):
     annotated_frame = results[0].plot()  # This will draw bounding boxes and labels on the frame
 
     # Save the annotated frame as an image
-    result_filename = os.path.join(image_dir, f"image{image_counter}_result.jpg")
+    result_filename = os.path.join(image_dir, f"image{result_imagenumber}_result.jpg")
+    result_imagenumber =  (result_imagenumber % 3) + 1
     cv2.imwrite(result_filename, annotated_frame)
     print(f"Result image saved: {result_filename}")
 
